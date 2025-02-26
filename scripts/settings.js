@@ -1,41 +1,83 @@
-document.addEventListener("DOMContentLoaded", function () {
-    const apiKeyInput = document.getElementById("api-key");
-    const saveButton = document.getElementById("save-button");
-    const successMessage = document.createElement("p");
+// Define supported languages
+const SUPPORTED_LANGUAGES = {
+    'en': 'English',
+    'es': 'Español (Spanish)',
+    'zh': '中文 (Chinese)',
+    'hi': 'हिन्दी (Hindi)',
+    'ar': 'العربية (Arabic)',
+    'pt': 'Português (Portuguese)',
+    'bn': 'বাংলা (Bengali)',
+    'ru': 'Русский (Russian)',
+    'ja': '日本語 (Japanese)',
+    'de': 'Deutsch (German)',
+    'fr': 'Français (French)',
+    'tr': 'Türkçe (Turkish)',
+    'ko': '한국어 (Korean)',
+    'it': 'Italiano (Italian)',
+    'pl': 'Polski (Polish)',
+    'uk': 'Українська (Ukrainian)',
+    'nl': 'Nederlands (Dutch)',
+    'vi': 'Tiếng Việt (Vietnamese)',
+    'th': 'ไทย (Thai)',
+    'fa': 'فارسی (Persian)',
+    'id': 'Bahasa Indonesia',
+    'cs': 'Čeština (Czech)',
+    'sv': 'Svenska (Swedish)',
+    'ro': 'Română (Romanian)',
+    'hu': 'Magyar (Hungarian)'
+};
 
-    successMessage.innerText = "✅ API Key saved successfully!";
-    successMessage.style.color = "#0077b5";
-    successMessage.style.fontSize = "14px";
-    successMessage.style.fontWeight = "500";
-    successMessage.style.textAlign = "center";
-    successMessage.style.marginTop = "10px";
-    successMessage.style.display = "none";
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize API key field
+    const apiKeyInput = document.getElementById('api-key');
+    const saveButton = document.getElementById('save-button');
+    const languageSelect = document.getElementById('language-select');
 
-    document.querySelector(".api-key-section").appendChild(successMessage);
+    // Populate language dropdown
+    for (const [code, name] of Object.entries(SUPPORTED_LANGUAGES)) {
+        const option = document.createElement('option');
+        option.value = code;
+        option.textContent = name;
+        languageSelect.appendChild(option);
+    }
 
-    // Load API key from Chrome storage
-    chrome.storage.sync.get("groqApiKey", function (data) {
+    // Load saved settings
+    chrome.storage.sync.get(['groqApiKey', 'selectedLanguage'], function(data) {
         if (data.groqApiKey) {
             apiKeyInput.value = data.groqApiKey;
         }
+        if (data.selectedLanguage) {
+            languageSelect.value = data.selectedLanguage;
+        } else {
+            // Default to English if no language is selected
+            languageSelect.value = 'en';
+            chrome.storage.sync.set({ selectedLanguage: 'en' });
+        }
     });
 
-    // Save API key to Chrome storage
-    saveButton.addEventListener("click", function () {
+    // Save settings
+    saveButton.addEventListener('click', function() {
         const apiKey = apiKeyInput.value.trim();
-        if (!apiKey) return;
+        const selectedLanguage = languageSelect.value;
 
-        chrome.storage.sync.set({ groqApiKey: apiKey }, function () {
-            successMessage.style.display = "block";
-            successMessage.style.opacity = "1";
-
-            // Hide message after 3 seconds
-            setTimeout(() => {
-                successMessage.style.opacity = "0";
-                setTimeout(() => {
-                    successMessage.style.display = "none";
-                }, 300);
-            }, 3000);
-        });
+        if (apiKey) {
+            chrome.storage.sync.set({
+                groqApiKey: apiKey,
+                selectedLanguage: selectedLanguage
+            }, function() {
+                // Show success message
+                const status = document.getElementById('status');
+                status.textContent = 'Settings saved successfully!';
+                status.style.color = '#4CAF50';
+                setTimeout(function() {
+                    status.textContent = '';
+                }, 3000);
+            });
+        } else {
+            // Show error message
+            const status = document.getElementById('status');
+            status.textContent = 'Please enter a valid API key';
+            status.style.color = '#f44336';
+        }
     });
 });

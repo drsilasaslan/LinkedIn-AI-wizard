@@ -43,11 +43,11 @@ function estimateTimeSavedInSeconds(postText) {
 }
 
 function updateStats(postText) {
-    chrome.storage.sync.get(["cringeCount", "timeSavedInMinutes"], (data) => {
-        const newCount = (data.cringeCount || 0) + 1;
+    chrome.storage.sync.get(["postCount", "timeSavedInMinutes"], (data) => {
+        const newCount = (data.postCount || 0) + 1;
         const estimatedTimeSavedInSeconds = estimateTimeSavedInSeconds(postText);
         const newTimeSavedInMinutes = parseFloat(data.timeSavedInMinutes || 0) + estimatedTimeSavedInSeconds / 60;
-        chrome.storage.sync.set({ cringeCount: newCount, timeSavedInMinutes: newTimeSavedInMinutes });
+        chrome.storage.sync.set({ postCount: newCount, timeSavedInMinutes: newTimeSavedInMinutes });
     });
 }
 
@@ -55,6 +55,42 @@ async function generatePostSummary(postText) {
     const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
     const apiKey = await getApiKeyIfEnabled();      
     if (!apiKey) return null;
+
+    // Get the selected language
+    const languageData = await new Promise(resolve => {
+        chrome.storage.sync.get('selectedLanguage', data => {
+            resolve(data.selectedLanguage || 'en');
+        });
+    });
+
+    // Language-specific instructions
+    const languageInstructions = {
+        'en': 'Summarize the content with a maximum of 10 words. Respond in English.',
+        'es': 'Resume el contenido en un máximo de 10 palabras. Responde en español.',
+        'zh': '用最多10个字概括内容。请用中文回答。',
+        'hi': '10 शब्दों में सामग्री को संक्षेप में बताएं। हिंदी में उत्तर दें।',
+        'ar': 'لخص المحتوى في 10 كلمات كحد أقصى. الرجاء الرد باللغة العربية.',
+        'pt': 'Resuma o conteúdo em no máximo 10 palavras. Responda em português.',
+        'bn': 'সর্বাধিক ১০টি শব্দে বিষয়বস্তু সংক্ষিপ্ত করুন। বাংলায় উত্তর দিন।',
+        'ru': 'Обобщите содержание максимум в 10 словах. Ответьте на русском языке.',
+        'ja': '10語以内で内容を要約してください。日本語で回答してください。',
+        'de': 'Fassen Sie den Inhalt in maximal 10 Wörtern zusammen. Antworten Sie auf Deutsch.',
+        'fr': 'Résumez le contenu en 10 mots maximum. Répondez en français.',
+        'tr': 'İçeriği en fazla 10 kelimeyle özetleyin. Türkçe olarak yanıtlayın.',
+        'ko': '10단어 이내로 내용을 요약하세요. 한국어로 답변해주세요.',
+        'it': 'Riassumi il contenuto in massimo 10 parole. Rispondi in italiano.',
+        'pl': 'Podsumuj treść w maksymalnie 10 słowach. Odpowiedz po polsku.',
+        'uk': 'Узагальніть зміст максимум у 10 словах. Відповідайте українською мовою.',
+        'nl': 'Vat de inhoud samen in maximaal 10 woorden. Antwoord in het Nederlands.',
+        'vi': 'Tóm tắt nội dung trong tối đa 10 từ. Trả lời bằng tiếng Việt.',
+        'th': 'สรุปเนื้อหาด้วยคำไม่เกิน 10 คำ ตอบเป็นภาษาไทย',
+        'fa': 'محتوا را در حداکثر ۱۰ کلمه خلاصه کنید. لطفا به فارسی پاسخ دهید.',
+        'id': 'Ringkas konten dalam maksimal 10 kata. Jawab dalam bahasa Indonesia.',
+        'cs': 'Shrňte obsah v maximálně 10 slovech. Odpovězte v češtině.',
+        'sv': 'Sammanfatta innehållet med maximalt 10 ord. Svara på svenska.',
+        'ro': 'Rezumați conținutul în maximum 10 cuvinte. Răspundeți în limba română.',
+        'hu': 'Foglalja össze a tartalmat maximum 10 szóban. Válaszoljon magyarul.'
+    };
 
     try {
         const response = await fetch(GROQ_API_URL, {
@@ -68,7 +104,7 @@ async function generatePostSummary(postText) {
                 messages: [
                     { 
                         role: "system", 
-                        content: "You are a LinkedIn post summarizer. Create a concise 10-word summary that captures the main point." 
+                        content: `You are a LinkedIn Summarizer. ${languageInstructions[languageData]}` 
                     },
                     { 
                         role: "user", 

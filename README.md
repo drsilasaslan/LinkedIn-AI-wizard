@@ -1,51 +1,48 @@
-# cringe-guard 📵
+# LinkedIn AI Wizard 🪄
 
-Control your LinkedIn feed with an LLM of your choice. A chrome extension that filters out cringe content (engagement click-bait, promotional content, and low-value off-topic posts etc) on your LinkedIn feed. It uses AI to analyse LinkedIn posts in real time and hides cringe worthy content.
+Control your LinkedIn feed with an LLM of your choice. A Chrome extension that enhances your LinkedIn experience by intelligently summarizing and filtering posts on your feed. It uses AI to analyze LinkedIn posts in real-time and provides concise summaries while keeping the original content just a click away.
 
-This prototype demonstrates how AI can empower us to have more control over the content we consume.
+## Features
+- 🎯 Automatic post summarization
+- 🔍 Smart content filtering
+- ⚡ Real-time processing
+- ⏰ Time-saving tracking
 
-## Demo
+![LinkedIn AI Wizard Demo](./images/demo-cringe-guard.gif)
 
-![Cringe Guard Demo Video](./images/demo-cringe-guard.gif)
+## How It Works
 
-## How it works?
+The LinkedIn AI Wizard Chrome extension enhances your LinkedIn feed using an AI model. When you browse LinkedIn:
 
-The cringe-guard Chrome extension filters out cringe content from your LinkedIn feed using an AI model. When you browse LinkedIn:
+1. **Detects Posts**: The extension automatically identifies new posts as you scroll.
+2. **AI Analysis**: Each post is analyzed by an AI model (via Groq API) that generates a concise 10-word summary.
+3. **Smart Display**: Posts are initially blurred with their summaries displayed, allowing you to quickly decide which content to engage with.
+4. **One-Click Access**: Original posts are instantly accessible with a single click.
 
-1. **Detects New Posts**: As new posts appear in your feed, the extension detects them in real time.
-2. **Sends for Analysis**: The post content is sent to an AI model (via an API) that classifies it based on predefined "cringe" criteria (e.g., engagement bait, overly promotional content, etc.).
-3. **Applies Blur**: Posts identified as cringe are blurred to keep your feed cleaner and more relevant.
-4. **User Control**: Users can customize the types of posts they want to see and hide, and control their settings (like 
-API keys) via modifying `content.js`.
+## Installation
 
-## Running Cringe-Guard Locally
+To run the LinkedIn AI Wizard Chrome extension on your local machine, follow these steps:
 
-To run the Cringe-Guard Chrome extension on your local machine, follow these steps:
-
-- Clone the repository.
-- Update your [groq](https://groq.com) API key in `content.js`.
-- Open Chrome browser and navigate to the Extensions page by typing `chrome://extensions/` in the URL bar.
-- Enable Developer Mode in the top-right corner.
-- Click on the Load unpacked button.
-- Select the folder where the extension files are located (`cringe-guard` folder).
-
-## TODO
-- Refactor the codebase a bit
-- Allow users to input API key through a simple interface in popup.html.
-- Provide users with the option to either blur or completely remove content from the DOM.
-- In addition to analyzing the text content of posts, automatically detect and remove posts with "Promoted" tags by default.
-- Enable custom post filters, letting users choose which posts to show or hide via UI
-- Persist user settings (API key and filters) using Chrome Storage API.
-- Test cross-browser compatibility
-- Bug: The extension is unexpectedly logging `GET chrome-extension://invalid/ net::ERR_FAILED` in the console for some reason.
-- Redesign the logo to better reflect the purpose of the extension
+1. Clone this repository
+2. Open Chrome and navigate to `chrome://extensions`
+3. Enable "Developer mode" in the top right
+4. Click "Load unpacked"
+5. Select the folder where the extension files are located (`LinkedIn-AI-wizard` folder).
+6. Get your API key from [Groq](https://groq.com)
+7. Add your API key in the extension settings
 
 ## Built with ❤️ by
 
-[Pankaj Tanwar](https://twitter.com/the2ndfloorguy), and checkout his [other side-hustles](https://pankajtanwar.in/side-hustles)
+[Dr. Silas Aslan](https://www.linkedin.com/in/draslan/), and checkout the [GitHub repository](https://github.com/drsilasaslan/LinkedIn-AI-wizard)
 
 ## Contributing
 
-I welcome contributions to the `cringe-guard` project! Whether it's a bug fix, a feature request, or improving documentation, your contributions are appreciated.
+I welcome contributions to the `LinkedIn-AI-wizard` project! Whether it's a bug fix, a feature request, or improving documentation, your contributions are appreciated.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
 
 > Thanks to [Unbaited](https://github.com/danielpetho/unbaited) for the inspiration.
