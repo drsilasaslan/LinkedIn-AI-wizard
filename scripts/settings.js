@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const saveButton = document.getElementById('save-button');
     const languageSelect = document.getElementById('language-select');
     const blockVideosToggle = document.getElementById('block-videos');
+    const enableTrafficLightToggle = document.getElementById('enable-traffic-light');
 
     // Populate language dropdown
     for (const [code, name] of Object.entries(SUPPORTED_LANGUAGES)) {
@@ -43,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load saved settings
-    chrome.storage.sync.get(['groqApiKey', 'selectedLanguage', 'blockVideos'], function(data) {
+    chrome.storage.sync.get(['groqApiKey', 'selectedLanguage', 'blockVideos', 'enableTrafficLight'], function(data) {
         if (data.groqApiKey) {
             apiKeyInput.value = data.groqApiKey;
         }
@@ -62,6 +63,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Default to not blocking videos
             chrome.storage.sync.set({ blockVideos: false });
         }
+        
+        // Set traffic light toggle state
+        if (data.enableTrafficLight !== undefined) {
+            enableTrafficLightToggle.checked = data.enableTrafficLight;
+        } else {
+            // Default to enabling traffic light
+            chrome.storage.sync.set({ enableTrafficLight: true });
+        }
     });
 
     // Save settings
@@ -69,12 +78,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const apiKey = apiKeyInput.value.trim();
         const selectedLanguage = languageSelect.value;
         const blockVideos = blockVideosToggle.checked;
+        const enableTrafficLight = enableTrafficLightToggle.checked;
 
         if (apiKey) {
             chrome.storage.sync.set({
                 groqApiKey: apiKey,
                 selectedLanguage: selectedLanguage,
-                blockVideos: blockVideos
+                blockVideos: blockVideos,
+                enableTrafficLight: enableTrafficLight
             }, function() {
                 // Show success message
                 const status = document.getElementById('status');

@@ -20,6 +20,49 @@ function isVideoBlockingEnabled() {
     });
 }
 
+// Function to check if traffic light coloring is enabled
+function isTrafficLightEnabled() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get(["enableTrafficLight"], (data) => {
+            resolve(data.enableTrafficLight === true);
+        });
+    });
+}
+
+// Function to get traffic light color based on word count
+function getTrafficLightColor(wordCount) {
+    if (wordCount < 50) {
+        return '#4CAF50'; // Green for short posts
+    } else if (wordCount < 150) {
+        return '#FFC107'; // Yellow/Amber for medium posts
+    } else {
+        return '#F44336'; // Red for long posts
+    }
+}
+
+// Function to get estimated reading time in seconds
+function getEstimatedReadingTime(wordCount) {
+    // Average reading speed is about 200-250 words per minute
+    // Using 225 words per minute as an average
+    const wordsPerSecond = 225 / 60;
+    return Math.ceil(wordCount / wordsPerSecond);
+}
+
+// Function to format reading time in a user-friendly way
+function formatReadingTime(seconds) {
+    if (seconds < 60) {
+        return `${seconds} sec read`;
+    } else {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        if (remainingSeconds === 0) {
+            return `${minutes} min read`;
+        } else {
+            return `${minutes} min ${remainingSeconds} sec read`;
+        }
+    }
+}
+
 // Function to check if a post contains a video
 function postContainsVideo(post) {
     // Check for common video elements in LinkedIn posts
@@ -52,10 +95,7 @@ async function initExtension() {
 
 function estimateTimeSavedInSeconds(postText) {
     const wordCount = postText.split(/\s+/).length;
-
-    if (wordCount <= 20) return 5;   // Short posts (~5 sec saved)
-    if (wordCount <= 50) return 10;  // Medium posts (~10 sec saved)
-    return 20;                       // Long posts (~20 sec saved)
+    return getEstimatedReadingTime(wordCount);
 }
 
 function updateStats(postText) {
@@ -156,12 +196,26 @@ async function processPost(post) {
         wrapper.appendChild(parentDiv.firstChild);
     }
 
+    // Calculate word count for traffic light coloring
+    const wordCount = post.innerText.split(/\s+/).length;
+    
+    // Check if traffic light coloring is enabled
+    const isTrafficLightEnabledResult = await isTrafficLightEnabled();
+    
+    // Apply blur effect with traffic light color if enabled
     wrapper.style.filter = 'blur(10px)';
     wrapper.style.transition = 'all 0.3s ease';
     wrapper.style.width = '100%';
     wrapper.style.height = '100%';
     wrapper.style.position = 'relative';
     wrapper.style.opacity = '0.95';
+    
+    // Apply traffic light color if enabled
+    if (isTrafficLightEnabledResult) {
+        const trafficLightColor = getTrafficLightColor(wordCount);
+        wrapper.style.boxShadow = `0 0 20px ${trafficLightColor}`;
+        wrapper.style.borderLeft = `4px solid ${trafficLightColor}`;
+    }
 
     parentDiv.style.position = 'relative';
 
@@ -181,6 +235,40 @@ async function processPost(post) {
     summaryContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
     summaryContainer.style.borderRadius = '8px';
     summaryContainer.style.maxWidth = '80%';
+    
+    // Add reading time indicator if traffic light is enabled
+    if (isTrafficLightEnabledResult) {
+        const readingTimeSeconds = getEstimatedReadingTime(wordCount);
+        const formattedReadingTime = formatReadingTime(readingTimeSeconds);
+        const trafficLightColor = getTrafficLightColor(wordCount);
+        
+        const readingTimeContainer = document.createElement('div');
+        readingTimeContainer.style.display = 'flex';
+        readingTimeContainer.style.alignItems = 'center';
+        readingTimeContainer.style.justifyContent = 'center';
+        readingTimeContainer.style.marginTop = '10px';
+        
+        // Create colored dot indicator
+        const colorDot = document.createElement('span');
+        colorDot.style.display = 'inline-block';
+        colorDot.style.width = '12px';
+        colorDot.style.height = '12px';
+        colorDot.style.borderRadius = '50%';
+        colorDot.style.backgroundColor = trafficLightColor;
+        colorDot.style.marginRight = '8px';
+        
+        const readingTimeText = document.createElement('span');
+        readingTimeText.innerText = formattedReadingTime;
+        readingTimeText.style.color = trafficLightColor;
+        readingTimeText.style.fontSize = '14px';
+        readingTimeText.style.fontWeight = 'bold';
+        
+        readingTimeContainer.appendChild(colorDot);
+        readingTimeContainer.appendChild(readingTimeText);
+        
+        summaryContainer.appendChild(document.createElement('br'));
+        summaryContainer.appendChild(readingTimeContainer);
+    }
 
     const button = document.createElement('button');
     button.innerText = 'Click to View';
