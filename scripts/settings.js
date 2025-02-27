@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const apiKeyInput = document.getElementById('api-key');
     const saveButton = document.getElementById('save-button');
     const languageSelect = document.getElementById('language-select');
+    const blockVideosToggle = document.getElementById('block-videos');
 
     // Populate language dropdown
     for (const [code, name] of Object.entries(SUPPORTED_LANGUAGES)) {
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load saved settings
-    chrome.storage.sync.get(['groqApiKey', 'selectedLanguage'], function(data) {
+    chrome.storage.sync.get(['groqApiKey', 'selectedLanguage', 'blockVideos'], function(data) {
         if (data.groqApiKey) {
             apiKeyInput.value = data.groqApiKey;
         }
@@ -53,17 +54,27 @@ document.addEventListener('DOMContentLoaded', function() {
             languageSelect.value = 'en';
             chrome.storage.sync.set({ selectedLanguage: 'en' });
         }
+        
+        // Set block videos toggle state
+        if (data.blockVideos !== undefined) {
+            blockVideosToggle.checked = data.blockVideos;
+        } else {
+            // Default to not blocking videos
+            chrome.storage.sync.set({ blockVideos: false });
+        }
     });
 
     // Save settings
     saveButton.addEventListener('click', function() {
         const apiKey = apiKeyInput.value.trim();
         const selectedLanguage = languageSelect.value;
+        const blockVideos = blockVideosToggle.checked;
 
         if (apiKey) {
             chrome.storage.sync.set({
                 groqApiKey: apiKey,
-                selectedLanguage: selectedLanguage
+                selectedLanguage: selectedLanguage,
+                blockVideos: blockVideos
             }, function() {
                 // Show success message
                 const status = document.getElementById('status');

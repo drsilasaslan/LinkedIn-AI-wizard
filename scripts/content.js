@@ -11,6 +11,22 @@ function getApiKeyIfEnabled() {
     });
 }
 
+// Function to check if video blocking is enabled
+function isVideoBlockingEnabled() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get(["blockVideos"], (data) => {
+            resolve(data.blockVideos === true);
+        });
+    });
+}
+
+// Function to check if a post contains a video
+function postContainsVideo(post) {
+    // Check for common video elements in LinkedIn posts
+    const videoElements = post.querySelectorAll('video, .feed-shared-update-v2__content .feed-shared-linkedin-video, .feed-shared-external-video, .feed-shared-update-v2__content [data-test-id="video-player"]');
+    return videoElements.length > 0;
+}
+
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -127,6 +143,12 @@ async function processPost(post) {
     const parentDiv = post.closest('.feed-shared-update-v2__control-menu-container');
     if (!parentDiv) return;
 
+    const isVideoBlockingEnabledResult = await isVideoBlockingEnabled();
+    if (isVideoBlockingEnabledResult && postContainsVideo(post)) {
+        console.log('Video blocking is enabled and post contains a video, skipping...');
+        return;
+    }
+
     const summary = await generatePostSummary(post.innerText);
     
     const wrapper = document.createElement('div');
@@ -213,17 +235,34 @@ function processExistingPosts() {
 
 function observeNewPosts() {
     const alreadyProcessedPosts = new Set();
+    const alreadyHiddenVideoPosts = new Set();
 
-    const observer = new MutationObserver((mutations) => {
+    const observer = new MutationObserver(async (mutations) => {
+        const isVideoBlockingEnabledResult = await isVideoBlockingEnabled();
+        
         mutations.forEach((mutation) => {
             if (mutation.type === 'childList') {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === Node.ELEMENT_NODE) {
+                        // Process regular posts
                         const posts = node.querySelectorAll('.update-components-update-v2__commentary');
                         for (const post of posts) {
                             if (!alreadyProcessedPosts.has(post)) {
                                 alreadyProcessedPosts.add(post);
                                 processPost(post);
+                            }
+                        }
+
+                        // Hide video posts if enabled
+                        if (isVideoBlockingEnabledResult) {
+                            // Find all posts
+                            const allPosts = node.querySelectorAll('.feed-shared-update-v2');
+                            for (const post of allPosts) {
+                                if (!alreadyHiddenVideoPosts.has(post) && postContainsVideo(post)) {
+                                    alreadyHiddenVideoPosts.add(post);
+                                    // Hide the video post
+                                    post.style.display = 'none';
+                                }
                             }
                         }
                     }
