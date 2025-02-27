@@ -243,6 +243,26 @@
         .toggle-input:checked + .toggle-label::before {
             transform: translateX(20px);
         }
+
+        .save-button {
+            background: #0077b5;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+            margin-top: 24px;
+            font-weight: 500;
+            box-shadow: 0 2px 4px rgba(0, 119, 181, 0.2);
+        }
+
+        .save-button:hover {
+            background: #005f8a;
+            box-shadow: 0 4px 8px rgba(0, 119, 181, 0.3);
+        }
     </style>
 </head>
 
@@ -272,17 +292,6 @@
             </div>
 
             <div class="language-section">
-                <h2>Language Settings</h2>
-                <div class="input-group">
-                    <label for="language-select">Summary Language:</label>
-                    <select id="language-select" class="language-dropdown">
-                        <!-- Will be populated by JavaScript -->
-                    </select>
-                    <p class="helper-text">Choose the language for post summaries</p>
-                </div>
-            </div>
-
-            <div class="language-section">
                 <h2>Content Filter Settings</h2>
                 <div class="input-group">
                     <label for="block-videos">Block Video Posts:</label>
@@ -300,6 +309,17 @@
                         <label for="enable-traffic-light" class="toggle-label"></label>
                     </div>
                     <p class="helper-text">Color-code blurred posts based on reading time (green=short, yellow=medium, red=long)</p>
+                </div>
+            </div>
+
+            <div class="language-section">
+                <h2>Language Settings</h2>
+                <div class="input-group">
+                    <label for="language-select">Summary Language:</label>
+                    <select id="language-select" class="language-dropdown">
+                        <!-- Will be populated by JavaScript -->
+                    </select>
+                    <p class="helper-text">Choose the language for post summaries</p>
                 </div>
             </div>
 
