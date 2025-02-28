@@ -191,7 +191,7 @@ async function processPost(post) {
     const wordCount = post.innerText.split(/\s+/).length;
     
     // Check if traffic light coloring is enabled
-    const isTrafficLightEnabledResult = await isTrafficLightEnabled();
+    const trafficLightEnabledResult = await isTrafficLightEnabled();
     
     // Apply blur effect with traffic light color if enabled
     wrapper.style.filter = 'blur(10px)';
@@ -202,7 +202,7 @@ async function processPost(post) {
     wrapper.style.opacity = '0.95';
     
     // Apply traffic light color if enabled
-    if (isTrafficLightEnabledResult) {
+    if (trafficLightEnabledResult) {
         const trafficLightColor = getTrafficLightColor(wordCount);
         wrapper.style.boxShadow = `0 0 20px ${trafficLightColor}`;
         wrapper.style.borderLeft = `4px solid ${trafficLightColor}`;
@@ -228,7 +228,7 @@ async function processPost(post) {
     summaryContainer.style.maxWidth = '80%';
     
     // Add reading time indicator if traffic light is enabled
-    if (isTrafficLightEnabledResult) {
+    if (trafficLightEnabledResult) {
         const readingTimeSeconds = getEstimatedReadingTime(wordCount);
         const formattedReadingTime = formatReadingTime(readingTimeSeconds);
         const trafficLightColor = getTrafficLightColor(wordCount);
@@ -303,22 +303,95 @@ async function processPost(post) {
     updateStats(post.innerText);
 }
 
-const debouncedProcessPost = debounce(processPost, 1000);
+async function applyTrafficLightOnly(post) {
+    const parentDiv = post.closest('.feed-shared-update-v2__control-menu-container');
+    if (!parentDiv) return;
 
-function processExistingPosts() {
+    // Calculate word count for traffic light coloring
+    const wordCount = post.innerText.split(/\s+/).length;
+    
+    // Check if traffic light coloring is enabled
+    const trafficLightEnabledResult = await isTrafficLightEnabled();
+    
+    if (trafficLightEnabledResult) {
+        const trafficLightColor = getTrafficLightColor(wordCount);
+        parentDiv.style.boxShadow = `0 0 20px ${trafficLightColor}`;
+        parentDiv.style.borderLeft = `4px solid ${trafficLightColor}`;
+        
+        // Add reading time indicator
+        const readingTimeSeconds = getEstimatedReadingTime(wordCount);
+        const formattedReadingTime = formatReadingTime(readingTimeSeconds);
+        
+        // Check if reading time indicator already exists
+        if (!parentDiv.querySelector('.reading-time-indicator')) {
+            const readingTimeIndicator = document.createElement('div');
+            readingTimeIndicator.className = 'reading-time-indicator';
+            readingTimeIndicator.style.display = 'flex';
+            readingTimeIndicator.style.alignItems = 'center';
+            readingTimeIndicator.style.padding = '4px 8px';
+            readingTimeIndicator.style.borderRadius = '4px';
+            readingTimeIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+            readingTimeIndicator.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
+            readingTimeIndicator.style.position = 'absolute';
+            readingTimeIndicator.style.top = '8px';
+            readingTimeIndicator.style.right = '8px';
+            readingTimeIndicator.style.zIndex = '10';
+            readingTimeIndicator.style.fontSize = '12px';
+            readingTimeIndicator.style.fontWeight = 'bold';
+            
+            // Create colored dot indicator
+            const colorDot = document.createElement('span');
+            colorDot.style.display = 'inline-block';
+            colorDot.style.width = '10px';
+            colorDot.style.height = '10px';
+            colorDot.style.borderRadius = '50%';
+            colorDot.style.backgroundColor = trafficLightColor;
+            colorDot.style.marginRight = '6px';
+            
+            const readingTimeText = document.createElement('span');
+            readingTimeText.innerText = formattedReadingTime;
+            readingTimeText.style.color = '#1f2937';
+            
+            readingTimeIndicator.appendChild(colorDot);
+            readingTimeIndicator.appendChild(readingTimeText);
+            
+            parentDiv.style.position = 'relative';
+            parentDiv.appendChild(readingTimeIndicator);
+        }
+    }
+}
+
+const debouncedProcessPost = debounce(processPost, 1000);
+const debouncedApplyTrafficLightOnly = debounce(applyTrafficLightOnly, 1000);
+
+async function processExistingPosts() {
+    const isEnabled = await isExtensionEnabled();
+    const trafficLightEnabled = await isTrafficLightEnabled();
+    
     const posts = document.querySelectorAll('.update-components-update-v2__commentary');
-    for (const post of posts) {
-        debouncedProcessPost(post);
+    
+    if (isEnabled) {
+        // Process posts with full extension features
+        for (const post of posts) {
+            debouncedProcessPost(post);
+        }
+    } else if (trafficLightEnabled) {
+        // Apply only traffic light colors if extension is disabled but traffic lights are enabled
+        for (const post of posts) {
+            debouncedApplyTrafficLightOnly(post);
+        }
     }
 }
 
 function observeNewPosts() {
     const alreadyProcessedPosts = new Set();
     const alreadyHiddenVideoPosts = new Set();
+    const alreadyTrafficLightPosts = new Set();
 
     const observer = new MutationObserver(async (mutations) => {
         const isVideoBlockingEnabledResult = await isVideoBlockingEnabled();
         const isEnabled = await isExtensionEnabled();
+        const trafficLightEnabledResult = await isTrafficLightEnabled();
         
         mutations.forEach((mutation) => {
             if (mutation.type === 'childList') {
@@ -331,6 +404,16 @@ function observeNewPosts() {
                                 if (!alreadyProcessedPosts.has(post)) {
                                     alreadyProcessedPosts.add(post);
                                     processPost(post);
+                                }
+                            }
+                        }
+                        // Apply traffic light colors if enabled but extension is disabled
+                        else if (trafficLightEnabledResult && !isEnabled) {
+                            const posts = node.querySelectorAll('.update-components-update-v2__commentary');
+                            for (const post of posts) {
+                                if (!alreadyTrafficLightPosts.has(post)) {
+                                    alreadyTrafficLightPosts.add(post);
+                                    applyTrafficLightOnly(post);
                                 }
                             }
                         }
@@ -363,15 +446,21 @@ function observeNewPosts() {
 async function init() {
     const apiKey = await getApiKey();
     const isEnabled = await isExtensionEnabled();
+    const trafficLightEnabled = await isTrafficLightEnabled();
     
-    // Always set up the observer to handle video blocking (if enabled)
+    // Always set up the observer to handle video blocking and traffic light colors
     observeNewPosts();
     
-    // Only initialize the full extension features if both API key exists and extension is enabled
-    if (apiKey && isEnabled) {
-        processExistingPosts();
-    } else {
-        console.warn("Full extension features not initialized. API key found: " + !!apiKey + ", Extension enabled: " + isEnabled);
+    // Process existing posts
+    processExistingPosts();
+    
+    // Log initialization status
+    if (!apiKey && isEnabled) {
+        console.warn("Full extension features not initialized. Missing API key.");
+    } else if (!isEnabled && trafficLightEnabled) {
+        console.log("Traffic light colors enabled without full extension features.");
+    } else if (!isEnabled) {
+        console.log("Extension disabled. Only independent features will work if enabled.");
     }
 }
 
