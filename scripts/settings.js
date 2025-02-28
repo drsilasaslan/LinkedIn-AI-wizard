@@ -34,6 +34,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const languageSelect = document.getElementById('language-select');
     const blockVideosToggle = document.getElementById('block-videos');
     const enableTrafficLightToggle = document.getElementById('enable-traffic-light');
+    const toggleSwitch = document.getElementById('toggle-switch');
 
     // Populate language dropdown
     for (const [code, name] of Object.entries(SUPPORTED_LANGUAGES)) {
@@ -44,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Load saved settings
-    chrome.storage.sync.get(['groqApiKey', 'selectedLanguage', 'blockVideos', 'enableTrafficLight'], function(data) {
+    chrome.storage.sync.get(['groqApiKey', 'selectedLanguage', 'blockVideos', 'enableTrafficLight', 'isEnabled'], function(data) {
         if (data.groqApiKey) {
             apiKeyInput.value = data.groqApiKey;
         }
@@ -71,6 +72,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Default to enabling traffic light
             chrome.storage.sync.set({ enableTrafficLight: true });
         }
+        
+        // Set LinkedIn feed filter toggle state
+        if (data.isEnabled !== undefined) {
+            toggleSwitch.checked = data.isEnabled;
+        } else {
+            // Default to disabled
+            chrome.storage.sync.set({ isEnabled: false });
+        }
     });
 
     // Save settings
@@ -79,13 +88,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const selectedLanguage = languageSelect.value;
         const blockVideos = blockVideosToggle.checked;
         const enableTrafficLight = enableTrafficLightToggle.checked;
+        const isEnabled = toggleSwitch.checked;
 
         if (apiKey) {
             chrome.storage.sync.set({
                 groqApiKey: apiKey,
                 selectedLanguage: selectedLanguage,
                 blockVideos: blockVideos,
-                enableTrafficLight: enableTrafficLight
+                enableTrafficLight: enableTrafficLight,
+                isEnabled: isEnabled
             }, function() {
                 // Show success message
                 const status = document.getElementById('status');

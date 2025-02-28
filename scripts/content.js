@@ -1,12 +1,20 @@
-function getApiKeyIfEnabled() {
+function getApiKey() {
     return new Promise((resolve) => {
-        chrome.storage.sync.get(["groqApiKey", "isEnabled"], (data) => {
-            if (data.isEnabled && data.groqApiKey) {
+        chrome.storage.sync.get(["groqApiKey"], (data) => {
+            if (data.groqApiKey) {
                 resolve(data.groqApiKey);
             } else {
-                console.warn("GROQ API key not found or extension is disabled.");
+                console.warn("GROQ API key not found.");
                 resolve(null);
             }
+        });
+    });
+}
+
+function isExtensionEnabled() {
+    return new Promise((resolve) => {
+        chrome.storage.sync.get(["isEnabled"], (data) => {
+            resolve(data.isEnabled === true);
         });
     });
 }
@@ -82,17 +90,6 @@ function debounce(func, wait) {
     };
 }
 
-async function initExtension() {
-    const apiKey = await getApiKeyIfEnabled();
-    if (!apiKey) {
-        console.warn("GROQ API key not found. Please set your API key in the extension settings.");
-        return;
-    }
-
-    processExistingPosts();
-    observeNewPosts();
-}
-
 function estimateTimeSavedInSeconds(postText) {
     const wordCount = postText.split(/\s+/).length;
     return getEstimatedReadingTime(wordCount);
@@ -109,7 +106,7 @@ function updateStats(postText) {
 
 async function generatePostSummary(postText) {
     const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-    const apiKey = await getApiKeyIfEnabled();      
+    const apiKey = await getApiKey();      
     if (!apiKey) return null;
 
     // Get the selected language
@@ -182,12 +179,6 @@ async function generatePostSummary(postText) {
 async function processPost(post) {
     const parentDiv = post.closest('.feed-shared-update-v2__control-menu-container');
     if (!parentDiv) return;
-
-    const isVideoBlockingEnabledResult = await isVideoBlockingEnabled();
-    if (isVideoBlockingEnabledResult && postContainsVideo(post)) {
-        console.log('Video blocking is enabled and post contains a video, skipping...');
-        return;
-    }
 
     const summary = await generatePostSummary(post.innerText);
     
@@ -327,21 +318,24 @@ function observeNewPosts() {
 
     const observer = new MutationObserver(async (mutations) => {
         const isVideoBlockingEnabledResult = await isVideoBlockingEnabled();
+        const isEnabled = await isExtensionEnabled();
         
         mutations.forEach((mutation) => {
             if (mutation.type === 'childList') {
                 mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === Node.ELEMENT_NODE) {
-                        // Process regular posts
-                        const posts = node.querySelectorAll('.update-components-update-v2__commentary');
-                        for (const post of posts) {
-                            if (!alreadyProcessedPosts.has(post)) {
-                                alreadyProcessedPosts.add(post);
-                                processPost(post);
+                        // Process regular posts if extension is enabled
+                        if (isEnabled) {
+                            const posts = node.querySelectorAll('.update-components-update-v2__commentary');
+                            for (const post of posts) {
+                                if (!alreadyProcessedPosts.has(post)) {
+                                    alreadyProcessedPosts.add(post);
+                                    processPost(post);
+                                }
                             }
                         }
 
-                        // Hide video posts if enabled
+                        // Hide video posts if video blocking is enabled (independent of main toggle)
                         if (isVideoBlockingEnabledResult) {
                             // Find all posts
                             const allPosts = node.querySelectorAll('.feed-shared-update-v2');
@@ -365,4 +359,20 @@ function observeNewPosts() {
     });
 }
 
-initExtension();
+// Initialize the extension
+async function init() {
+    const apiKey = await getApiKey();
+    const isEnabled = await isExtensionEnabled();
+    
+    // Always set up the observer to handle video blocking (if enabled)
+    observeNewPosts();
+    
+    // Only initialize the full extension features if both API key exists and extension is enabled
+    if (apiKey && isEnabled) {
+        processExistingPosts();
+    } else {
+        console.warn("Full extension features not initialized. API key found: " + !!apiKey + ", Extension enabled: " + isEnabled);
+    }
+}
+
+init();

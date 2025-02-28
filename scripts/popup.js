@@ -30,19 +30,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // toggle switch for AI Wizard
-    const toggleSwitch = document.getElementById("toggle-switch");
-
-    // Load initial state from Chrome storage
-    chrome.storage.sync.get("isEnabled", function (data) {
-        toggleSwitch.checked = data.isEnabled ?? false; // Default to false
-    });
-
-    // Listen for toggle changes
-    toggleSwitch.addEventListener("change", function () {
-        chrome.storage.sync.set({ isEnabled: toggleSwitch.checked });
-    });
-
     chrome.storage.sync.get(["postCount", "timeSavedInMinutes"], function (data) {
         const postCount = data.postCount || 0;
         const timeSaved = Math.ceil(data.timeSavedInMinutes || 0);
